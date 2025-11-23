@@ -145,9 +145,12 @@
   </div>
 
   <script>
-    // ★ここを自分の LIFF ID に書き換え（今までと同じIDでOK）★
+    // ★ここを自分の LIFF ID にする（今使っているもの）★
     const LIFF_ID = "2008548411-3Vz8LvYZ";
-　　 const N8N_WEBHOOK_URL = "https://riki07m.app.n8n.cloud/webhook/ai-faq-test";
+
+    // ★ここを n8n の Production URL にする★
+    const N8N_WEBHOOK_URL = "https://riki07m.app.n8n.cloud/webhook/ai-faq-test";
+
     async function main() {
       try {
         await liff.init({ liffId: LIFF_ID });
@@ -167,7 +170,7 @@
         document.getElementById("profileCard").style.display = "block";
         document.getElementById("faqCard").style.display = "block";
 
-        // メッセージ送信用ボタン
+        // 「受付しました」ボタン（これは今までどおり）
         const sendBtn = document.getElementById("sendBtn");
         sendBtn.addEventListener("click", async () => {
           try {
@@ -181,29 +184,47 @@
           }
         });
 
-        // 質問ボタン（今はダミー回答）
+        // ★ここが n8n 呼び出し部分：ダミー回答は全部削除 ★
         const askBtn = document.getElementById("askBtn");
         const questionEl = document.getElementById("question");
         const answerBox = document.getElementById("answerBox");
 
-        askBtn.addEventListener("click", () => {
+        askBtn.addEventListener("click", async () => {
           const q = questionEl.value.trim();
           if (!q) {
             alert("質問を入力してください");
             return;
           }
 
-          // ★今はまだ n8n につながず、ダミーでそれっぽい回答を表示する★
-          const dummyAnswer =
-            "【ダミー回答】\n" +
-            "あなたの質問は：\n" +
-            "「" + q + "」\n\n" +
-            "今はまだテストモードなので、本物のAI回答ではありません。\n" +
-            "次のステップで n8n と接続して、実際のAI回答に差し替えます。";
+          askBtn.disabled = true;
+          askBtn.textContent = "送信中...";
+          answerBox.textContent = "AIが考え中です...";
 
-          answerBox.textContent = dummyAnswer;
+          try {
+            const res = await fetch(N8N_WEBHOOK_URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ question: q }),
+            });
+
+            if (!res.ok) {
+              throw new Error("n8nからエラーが返されました: " + res.status);
+            }
+
+            const data = await res.json();
+            // n8nの Respond to Webhook で { "answer": "..." } を返している前提
+            answerBox.textContent =
+              data.answer || "回答を取得できませんでした。";
+          } catch (err) {
+            console.error(err);
+            answerBox.textContent = "エラーが発生しました: " + err.message;
+          } finally {
+            askBtn.disabled = false;
+            askBtn.textContent = "質問する（AI回答）";
+          }
         });
-
       } catch (err) {
         console.error(err);
         document.getElementById("status").textContent = "エラー: " + err.message;
@@ -211,6 +232,5 @@
     }
 
     main();
-  </script>
-</body>
+  </script></body>
 </html>
