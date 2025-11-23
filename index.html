@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<title>テストLINEミニアプリ</title>
+
+<!-- LIFF SDK -->
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<style>
+body { font-family: system-ui, sans-serif; padding: 16px; }
+#profile img { width: 80px; border-radius: 50%; }
+button { padding: 8px 16px; font-size: 14px; }
+</style>
+</head>
+<body>
+<h1>テストLINEミニアプリ</h1>
+
+<div id="status">LIFF初期化中...</div>
+
+<div id="profile" style="display:none;">
+<p>こんにちは、<span id="displayName"></span> さん！</p>
+<img id="pictureUrl" alt="profile" />
+</div>
+
+<p>
+<button id="sendBtn" style="display:none;">「受付しました」と送る</button>
+</p>
+
+<script>
+// ★ここに自分の LIFF ID を入れる★
+const LIFF_ID = "2008548411-3Vz8LvYZ";
+
+```
+async function main() {
+  try {
+    // 1. LIFF初期化
+    await liff.init({ liffId: LIFF_ID }); //  [oai_citation:14‡LINE Developers](<https://developers.line.biz/ja/docs/liff/developing-liff-apps/?utm_source=chatgpt.com>)
+
+    // 2. ログインしていなければログイン
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return; // ログイン後にリロードされる
+    }
+
+    document.getElementById("status").textContent = "ログイン済みです。";
+
+    // 3. プロフィール取得
+    const profile = await liff.getProfile();
+    document.getElementById("displayName").textContent = profile.displayName;
+    document.getElementById("pictureUrl").src = profile.pictureUrl;
+    document.getElementById("profile").style.display = "block";
+
+    // 4. メッセージ送信ボタン
+    const btn = document.getElementById("sendBtn");
+    btn.style.display = "inline-block";
+    btn.addEventListener("click", async () => {
+      try {
+        await liff.sendMessages([
+          { type: "text", text: "LIFFから「受付しました」テストです！" }
+        ]);
+        alert("メッセージを送信しました");
+      } catch (e) {
+        console.error(e);
+        alert("送信に失敗しました: " + e.message);
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    document.getElementById("status").textContent = "エラー: " + err.message;
+  }
+}
+
+main();
+
+```
+
+</script>
+</body>
+</html>
