@@ -1,80 +1,216 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<title>テストLINEミニアプリ</title>
+  <meta charset="UTF-8" />
+  <title>テストLINEミニアプリ</title>
 
-<!-- LIFF SDK -->
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-<style>
-body { font-family: system-ui, sans-serif; padding: 16px; }
-#profile img { width: 80px; border-radius: 50%; }
-button { padding: 8px 16px; font-size: 14px; }
-</style>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f7fb;
+      padding: 16px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+    #status {
+      font-size: 12px;
+      color: #555;
+      margin-bottom: 12px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+    }
+    .profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .profile img {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .profile-name {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .profile-sub {
+      font-size: 12px;
+      color: #777;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 16px;
+      font-size: 14px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: #06c755;
+      color: #fff;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    .btn-secondary {
+      background: #e0e3eb;
+      color: #333;
+    }
+    textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 8px;
+      font-size: 14px;
+      border-radius: 8px;
+      border: 1px solid #d0d4e4;
+      resize: vertical;
+    }
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .answer {
+      background: #f0f3ff;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 14px;
+      white-space: pre-wrap;
+      min-height: 60px;
+    }
+    .answer-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+      font-size: 13px;
+      color: #4b5bd5;
+    }
+  </style>
 </head>
 <body>
-<h1>テストLINEミニアプリ</h1>
+  <div class="container">
+    <h1>テストLINEミニアプリ</h1>
+    <div id="status">LIFF初期化中...</div>
 
-<div id="status">LIFF初期化中...</div>
+    <!-- プロフィールカード -->
+    <div id="profileCard" class="card" style="display:none;">
+      <div class="profile">
+        <img id="pictureUrl" alt="profile" />
+        <div>
+          <div class="profile-name" id="displayName"></div>
+          <div class="profile-sub">このミニアプリでテスト中のユーザー</div>
+          <button id="sendBtn" class="btn btn-secondary" style="margin-top:6px;">
+            「受付しました」と送る
+          </button>
+        </div>
+      </div>
+    </div>
 
-<div id="profile" style="display:none;">
-<p>こんにちは、<span id="displayName"></span> さん！</p>
-<img id="pictureUrl" alt="profile" />
-</div>
+    <!-- 質問フォームカード -->
+    <div id="faqCard" class="card" style="display:none;">
+      <label for="question">AIに聞きたいこと（テスト用）</label>
+      <textarea id="question" placeholder="例）有給休暇はいつまでに申請すればいいですか？"></textarea>
 
-<p>
-<button id="sendBtn" style="display:none;">「受付しました」と送る</button>
-</p>
+      <button id="askBtn" class="btn" style="margin-top:10px;">質問する（ダミー回答）</button>
 
-<script>
-// ★ここに自分の LIFF ID を入れる★
-const LIFF_ID = "2008548411-3Vz8LvYZ";
+      <div style="margin-top:16px;">
+        <div class="answer-title">AIからの回答（テスト）</div>
+        <div id="answerBox" class="answer">
+          ここに回答が表示されます。
+        </div>
+      </div>
+    </div>
+  </div>
 
-```
-async function main() {
-  try {
-    // 1. LIFF初期化
-    await liff.init({ liffId: LIFF_ID }); //  [oai_citation:14‡LINE Developers](<https://developers.line.biz/ja/docs/liff/developing-liff-apps/?utm_source=chatgpt.com>)
+  <script>
+    // ★ここを自分の LIFF ID に書き換え（今までと同じIDでOK）★
+    const LIFF_ID = "2008548411-3Vz8LvYZ";
 
-    // 2. ログインしていなければログイン
-    if (!liff.isLoggedIn()) {
-      liff.login();
-      return; // ログイン後にリロードされる
+    async function main() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        document.getElementById("status").textContent = "ログイン済みです。";
+
+        const profile = await liff.getProfile();
+        document.getElementById("displayName").textContent = profile.displayName;
+        document.getElementById("pictureUrl").src = profile.pictureUrl;
+
+        // カード表示
+        document.getElementById("profileCard").style.display = "block";
+        document.getElementById("faqCard").style.display = "block";
+
+        // メッセージ送信用ボタン
+        const sendBtn = document.getElementById("sendBtn");
+        sendBtn.addEventListener("click", async () => {
+          try {
+            await liff.sendMessages([
+              { type: "text", text: "LIFFから「受付しました」テストです！" }
+            ]);
+            alert("メッセージを送信しました");
+          } catch (e) {
+            console.error(e);
+            alert("送信に失敗しました: " + e.message);
+          }
+        });
+
+        // 質問ボタン（今はダミー回答）
+        const askBtn = document.getElementById("askBtn");
+        const questionEl = document.getElementById("question");
+        const answerBox = document.getElementById("answerBox");
+
+        askBtn.addEventListener("click", () => {
+          const q = questionEl.value.trim();
+          if (!q) {
+            alert("質問を入力してください");
+            return;
+          }
+
+          // ★今はまだ n8n につながず、ダミーでそれっぽい回答を表示する★
+          const dummyAnswer =
+            "【ダミー回答】\n" +
+            "あなたの質問は：\n" +
+            "「" + q + "」\n\n" +
+            "今はまだテストモードなので、本物のAI回答ではありません。\n" +
+            "次のステップで n8n と接続して、実際のAI回答に差し替えます。";
+
+          answerBox.textContent = dummyAnswer;
+        });
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById("status").textContent = "エラー: " + err.message;
+      }
     }
 
-    document.getElementById("status").textContent = "ログイン済みです。";
-
-    // 3. プロフィール取得
-    const profile = await liff.getProfile();
-    document.getElementById("displayName").textContent = profile.displayName;
-    document.getElementById("pictureUrl").src = profile.pictureUrl;
-    document.getElementById("profile").style.display = "block";
-
-    // 4. メッセージ送信ボタン
-    const btn = document.getElementById("sendBtn");
-    btn.style.display = "inline-block";
-    btn.addEventListener("click", async () => {
-      try {
-        await liff.sendMessages([
-          { type: "text", text: "LIFFから「受付しました」テストです！" }
-        ]);
-        alert("メッセージを送信しました");
-      } catch (e) {
-        console.error(e);
-        alert("送信に失敗しました: " + e.message);
-      }
-    });
-  } catch (err) {
-    console.error(err);
-    document.getElementById("status").textContent = "エラー: " + err.message;
-  }
-}
-
-main();
-
-```
-
-</script>
+    main();
+  </script>
 </body>
 </html>
